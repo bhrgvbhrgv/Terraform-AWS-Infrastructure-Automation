@@ -1,465 +1,250 @@
-# Comprehensive Study Guide: CloudOps Status Dashboard & AWS Infrastructure
+# Comprehensive Study Guide: CloudOps Command Center & AWS Infrastructure Automation
 
-Welcome! This study guide is designed to take you **from the absolute basics to an advanced understanding** of the **CloudOps Status Dashboard** application and the corresponding **AWS Cloud Architecture & Terraform Infrastructure Automation** that supports it.
+Welcome to the **CloudOps Command Center Study Guide**! This guide is crafted to provide a deep, step-by-step technical walkthrough of the architecture, codebase, cloud integrations, and DevOps patterns implemented in this project.
 
-Whether you are preparing for DevOps engineering interviews, building out your personal portfolio, or learning how modern web applications and cloud architectures connect end-to-end, this document covers every concept step-by-step.
+Whether you are preparing for **Cloud Engineer**, **DevOps Engineer**, or **Site Reliability Engineer (SRE)** technical interviews, or looking to master enterprise cloud dashboard design, this document covers every concept from fundamental principles to production nuances.
 
 ---
 
 ## Table of Contents
-1. [Big Picture: What Is This Project?](#1-big-picture-what-is-this-project)
-2. [End-to-End Architecture Overview](#2-end-to-end-architecture-overview)
-3. [Deep Dive into AWS Services & Networking](#3-deep-dive-into-aws-services--networking)
-   - [AWS VPC (Virtual Private Cloud) & Subnet Design](#aws-vpc-virtual-private-cloud--subnet-design)
-   - [Internet Gateways, Route Tables, and NAT Gateways](#internet-gateways-route-tables-and-nat-gateways)
-   - [AWS Security Groups vs. Network ACLs (NACLs)](#aws-security-groups-vs-network-acls-nacls)
-   - [Compute Layer (EC2 / ECS / Fargate)](#compute-layer-ec2--ecs--fargate)
-   - [Load Balancing (AWS Application Load Balancer - ALB)](#load-balancing-aws-application-load-balancer---alb)
-   - [Relational Database Service (AWS RDS PostgreSQL)](#relational-database-service-aws-rds-postgresql)
-   - [Static Frontend Hosting (AWS S3 & CloudFront CDN)](#static-frontend-hosting-aws-s3--cloudfront-cdn)
-   - [DNS & Security (Route 53, ACM, AWS Secrets Manager)](#dns--security-route-53-acm-aws-secrets-manager)
-4. [Infrastructure as Code (IaC) with Terraform](#4-infrastructure-as-code-iac-with-terraform)
-   - [Why Terraform?](#why-terraform)
-   - [How State Works (`terraform.tfstate`, S3 backend, DynamoDB locks)](#how-state-works)
-   - [Terraform Module Architecture for this Project](#terraform-module-architecture-for-this-project)
-5. [Deep Dive into the Application Codebase](#5-deep-dive-into-the-application-codebase)
-   - [PostgreSQL Database Design & SQL Mechanics](#postgresql-database-design--sql-mechanics)
-   - [Backend Architecture (Node.js & Express)](#backend-architecture-nodejs--express)
-   - [Frontend Architecture (React 18 & Vite)](#frontend-architecture-react-18--vite)
-   - [Testing Strategy (Vitest, RTL, Jest, Supertest)](#testing-strategy)
-6. [Request Lifecycle: Step-by-Step Walkthrough](#6-request-lifecycle-step-by-step-walkthrough)
-7. [Step-by-Step Hands-On Learning Path](#7-step-by-step-hands-on-learning-path)
-8. [DevOps Interview Questions & Answers on this Project](#8-devops-interview-questions--answers-on-this-project)
+1. [Executive Summary: What Is CloudOps Command Center?](#1-executive-summary-what-is-cloudops-command-center)
+2. [High-Level Architecture & Request Flow](#2-high-level-architecture--request-flow)
+3. [Deep Dive into the CloudOps Provider Abstraction](#3-deep-dive-into-the-cloudops-provider-abstraction)
+4. [Backend Architecture (Node.js, Express, TypeScript, Prisma)](#4-backend-architecture-nodejs-express-typescript-prisma)
+   - [Domain Modular Structure](#domain-modular-structure)
+   - [Authentication & JWT Security](#authentication--jwt-security)
+   - [Database Layer: Prisma ORM & PostgreSQL](#database-layer-prisma-orm--postgresql)
+   - [Structured Logging with Pino](#structured-logging-with-pino)
+5. [Frontend Architecture (React 18, TypeScript, Tailwind, Recharts)](#5-frontend-architecture-react-18-typescript-tailwind-recharts)
+   - [State Management with TanStack Query](#state-management-with-tanstack-query)
+   - [Responsive Dark-Themed Operations Console](#responsive-dark-themed-operations-console)
+   - [Telemetry Visualizations with Recharts](#telemetry-visualizations-with-recharts)
+6. [AWS Services & Security Deep Dive](#6-aws-services--security-deep-dive)
+   - [Amazon EC2 Fleet Telemetry](#amazon-ec2-fleet-telemetry)
+   - [CloudWatch Metrics, Alarms, and Periods](#cloudwatch-metrics-alarms-and-periods)
+   - [CloudWatch Logs & Bounded Filtering](#cloudwatch-logs--bounded-filtering)
+   - [Least-Privilege Read-Only IAM Policy](#least-privilege-read-only-iam-policy)
+7. [Containerization & Nginx Reverse Proxy](#7-containerization--nginx-reverse-proxy)
+8. [Testing & Quality Gates](#8-testing--quality-gates)
+9. [DevOps & Cloud Engineering Interview Questions & Answers](#9-devops--cloud-engineering-interview-questions--answers)
 
 ---
 
-## 1. Big Picture: What Is This Project?
+## 1. Executive Summary: What Is CloudOps Command Center?
 
-### The Business Context
-In any modern technology company or cloud ecosystem (Netflix, Uber, Amazon, Airbnb), high availability is paramount. When an incident occurs or a subsystem degrades, engineering teams and end-users need a centralized **Status Page** to understand:
-- Is the database healthy?
-- Is the API experiencing elevated latency or outages?
-- What were the recent status transitions?
+### The Problem
+Cloud and DevOps engineers often spend considerable time context-switching across different screens in the AWS Management Console during triage or incident response:
+- Navigating to **EC2** to check instance states and private IPs.
+- Navigating to **CloudWatch Metrics** to review CPU and network load curves.
+- Navigating to **CloudWatch Alarms** to see which thresholds fired.
+- Navigating to **CloudWatch Logs Insights** to fetch application logs.
 
-### Why this is a Standout Portfolio Project
-Many beginner DevOps projects simply deploy an off-the-shelf "Hello World" container. This project is superior because:
-1. **Real 3-Tier Web Application**: A React Single Page Application (frontend), an Express REST API (backend), and a PostgreSQL database (persistence).
-2. **True Enterprise Cloud Isolation**: The database and backend are private and cannot be reached directly from the public internet.
-3. **Automated Provisioning with Terraform**: Every piece of infrastructure is version-controlled and reproducible.
-4. **Idempotent Operations**: The database migrations and seed scripts can run repeatedly without corrupting data or throwing duplicates.
+### The Solution
+**CloudOps Command Center** unifies these disparate operational views into a single, high-performance web dashboard:
+- **Unified Overview**: Real-time fleet health (`HEALTHY`, `DEGRADED`, `CRITICAL`), active alarms, system reachability checks, and fleet-wide CPU/Network trends.
+- **Compute Inventory**: Searchable and filterable EC2 table (by state, availability zone, IP, or tag) with an interactive telemetry drawer.
+- **Monitoring & Alarms**: Real-time alarm status tracking with evaluation periods and trigger reasons.
+- **Log Streaming**: Bounded, safe log streams with client-side keyword filtering.
+- **Zero AWS Credential Leakage**: Completely isolated server-side architecture with zero cloud credentials exposed to client browsers.
+- **Offline / Local Demo Capability**: Runs seamlessly in local demo mode using deterministic mock fixtures without requiring an active AWS account.
 
 ---
 
-## 2. End-to-End Architecture Overview
-
-Below is the complete architectural layout showing how internet users access the frontend and API, and how traffic safely traverses AWS network boundaries:
+## 2. High-Level Architecture & Request Flow
 
 ```mermaid
 flowchart TD
-    User([Internet User / Browser])
+    User([DevOps Engineer / Browser]) -->|HTTP / Port 80, 3000| Nginx[Nginx Reverse Proxy]
     
-    subgraph CloudFront_S3 ["Edge & Static Storage Layer"]
-        CF[AWS CloudFront CDN]
-        S3[(AWS S3 Bucket: React SPA Build)]
+    subgraph Frontend_Container ["Frontend Container"]
+        Nginx -->|Static SPA Assets| ReactApp["React 18 + TS SPA (Vite, Tailwind)"]
     end
 
-    subgraph AWS_Cloud ["AWS Cloud (VPC: 10.0.0.0/16)"]
-        subgraph Public_Subnets ["Public Subnets (us-east-1a, 1b)"]
-            ALB[AWS Application Load Balancer - Port 80/443]
-            NAT[NAT Gateway - Egress for Private Subnets]
-            IGW[Internet Gateway]
-        end
-
-        subgraph Private_App_Subnets ["Private App Subnets (us-east-1a, 1b)"]
-            ECS_Tasks["Backend Containers / EC2 Instances (Node.js Express :5000)"]
-        end
-
-        subgraph Private_DB_Subnets ["Private Database Subnets (us-east-1a, 1b)"]
-            RDS[AWS RDS PostgreSQL Instance :5432]
-        end
+    subgraph Backend_Container ["Backend Container (:4000)"]
+        Nginx -->|/api/v1/* Proxy| ExpressApp["Express API (TypeScript)"]
+        ExpressApp --> AuthMiddleware["JWT Auth & Security (Helmet, RateLimit)"]
+        AuthMiddleware --> RouterLayer["API Modules (/dashboard, /ec2, /cloudwatch, /logs)"]
+        
+        RouterLayer --> ProviderInterface["CloudProvider Interface"]
+        ProviderInterface -.->|CLOUD_PROVIDER=demo| DemoProvider["DemoCloudProvider (Deterministic Fixtures)"]
+        ProviderInterface -.->|CLOUD_PROVIDER=aws| AwsProvider["AwsCloudProvider (AWS SDK v3)"]
     end
 
-    User -->|1. HTTPS Request for UI| CF
-    CF -->|Fetch static HTML/JS/CSS| S3
-    User -->|2. REST API Calls /api/*| ALB
-    ALB -->|3. Route & Balance Requests| ECS_Tasks
-    ECS_Tasks -->|4. Parameterized SQL Queries| RDS
-    ECS_Tasks -->|5. Outbound Updates / Package Downloads| NAT
-    NAT --> IGW
-    IGW -->|Public Internet| AWS_Cloud
+    subgraph Data_Layer ["Persistence & Cloud"]
+        ExpressApp -->|Prisma Client| Postgres[(PostgreSQL Container :5432)]
+        AwsProvider -->|HTTPS / IAM Role| AWSServices["AWS APIs (EC2, CloudWatch, CloudWatch Logs)"]
+    end
 ```
 
----
-
-## 3. Deep Dive into AWS Services & Networking
-
-To master this architecture, you need to understand each AWS component from first principles.
-
-### AWS VPC (Virtual Private Cloud) & Subnet Design
-A **VPC** is your isolated private virtual data center inside AWS.
-- **CIDR Block**: Typically assigned `10.0.0.0/16` (providing 65,536 private IP addresses).
-- **Multi-AZ (Availability Zone) Design**: Enterprise applications run across at least two physical data centers (e.g., `us-east-1a` and `us-east-1b`) for fault tolerance.
-
-#### The 3-Tier Subnet Strategy
-We divide the VPC into three distinct tiers:
-1. **Public Subnets (`10.0.1.0/24`, `10.0.2.0/24`)**:
-   - Directly connected to an **Internet Gateway (IGW)**.
-   - Hosts only public-facing resources: **Application Load Balancer (ALB)** and **NAT Gateways**.
-   - **Never host your database or backend application code directly here.**
-2. **Private Application Subnets (`10.0.10.0/24`, `10.0.11.0/24`)**:
-   - No direct route to the Internet Gateway.
-   - Hosts the Node.js Express backend servers (containers or EC2 instances).
-   - Only reachable via the ALB.
-   - Can access the internet *outbound* (e.g. for security patches or npm installs) through a **NAT Gateway**.
-3. **Private Database Subnets (`10.0.20.0/24`, `10.0.21.0/24`)**:
-   - Strictly isolated with **no outbound internet route** and **no public IPs**.
-   - Contains RDS PostgreSQL instances and replicas.
-   - Accessible *only* on port `5432` from the Private Application Subnets.
+### Trace of an API Request
+1. **User Action**: The engineer visits the EC2 inventory page or opens an instance telemetry drawer.
+2. **Client Request**: TanStack Query triggers a fetch to `/api/v1/ec2/instances/i-0a1b2c3d4e5f00001/metrics?metric=CPUUtilization&range=60`.
+3. **Nginx Reverse Proxy**: Receives the request on port 80 and passes it internally to `backend:4000`.
+4. **Auth & Validation**: Express verifies the Bearer JWT token in the `Authorization` header and validates request parameters using Zod.
+5. **Provider Layer**: The controller asks `getCloudProvider().getInstanceMetrics(...)`.
+   - In **Demo Mode**: `DemoCloudProvider` returns calculated, realistic sine/cosine telemetry curves.
+   - In **AWS Mode**: `AwsCloudProvider` uses `@aws-sdk/client-cloudwatch`'s `GetMetricDataCommand` to query CloudWatch time-series data.
+6. **Normalized Response**: The backend returns a normalized JSON response envelope (`{ data, meta }`), isolating the frontend from raw AWS SDK structures.
+7. **Render**: The React UI updates the Recharts area chart smoothly with axes and tooltips.
 
 ---
 
-### Internet Gateways, Route Tables, and NAT Gateways
+## 3. Deep Dive into the CloudOps Provider Abstraction
 
-| Component | What It Does | Analogy |
-| :--- | :--- | :--- |
-| **Internet Gateway (IGW)** | A horizontally scaled VPC component that allows bidirectional communication between public resources and the internet. | The front door of an office building. |
-| **Route Table** | A set of rules (routes) that determines where network traffic from your subnet is directed. | The hallway signs showing which door leads to which department. |
-| **NAT Gateway** | Network Address Translation gateway located in a public subnet. Allows private backend servers to send outbound traffic to the internet while preventing external internet hosts from initiating inbound connections. | A one-way security turnstile. |
+A critical architectural pattern in this application is the **Provider Pattern**.
 
----
-
-### AWS Security Groups vs. Network ACLs (NACLs)
-
-In AWS, security operates in layers:
-
-#### 1. Security Groups (Stateful Virtual Firewalls at the Instance/ENI Level)
-- **Stateful**: If you allow incoming traffic on port 80, the return response traffic is automatically allowed regardless of outbound rules.
-- **Principle of Least Privilege**:
-  - **ALB Security Group**:
-    - Inbound: `0.0.0.0/0` on Port `80` (HTTP) and `443` (HTTPS).
-    - Outbound: Allow to Backend Security Group on Port `5000`.
-  - **Backend Security Group**:
-    - Inbound: ONLY from `ALB Security Group` on Port `5000`. (Blocks direct internet access!).
-    - Outbound: Allow to RDS Security Group on Port `5432` + outbound internet via NAT.
-  - **Database Security Group**:
-    - Inbound: ONLY from `Backend Security Group` on Port `5432`.
-    - Outbound: None (Database needs no egress).
-
-#### 2. Network ACLs (Stateless Subnet-level Firewalls)
-- Act as the perimeter boundary for entire subnets. Evaluated before security groups. Stateless means both inbound and outbound ports must be explicitly permitted (including ephemeral ports 1024–65535).
-
----
-
-### Compute Layer (EC2 / ECS / Fargate)
-
-In production, the Node.js Express backend is deployed in one of two main ways:
-1. **AWS ECS (Elastic Container Service) with Fargate (Serverless Containers)**:
-   - Eliminates the need to patch or manage virtual machines.
-   - Scales container tasks automatically based on CPU or memory utilization.
-   - Tasks register automatically with the Application Load Balancer Target Group.
-2. **AWS EC2 Auto Scaling Group (ASG)**:
-   - Deploys EC2 instances using a golden AMI or `user_data` script.
-   - Automatically replaces unhealthy instances and scales up during traffic spikes.
-
----
-
-### Load Balancing (AWS Application Load Balancer - ALB)
-The ALB operates at **Layer 7 (Application Layer)** of the OSI model.
-- **Listeners & Rules**:
-  - Checks incoming HTTP/HTTPS requests.
-  - Health checks: Continuously polls `GET /api/health` every 15–30 seconds.
-  - If a backend instance fails health checks (returns anything other than `200 OK`), traffic is automatically routed only to healthy nodes.
-- **SSL Termination**: Encrypts traffic from the internet using an SSL/TLS certificate managed by AWS Certificate Manager (ACM), while communicating over the private network to backends.
-
----
-
-### Relational Database Service (AWS RDS PostgreSQL)
-AWS RDS automates administrative database overhead:
-- **Multi-AZ Deployment**: Maintains a synchronous standby replica in a second Availability Zone. If AZ 1 suffers an outage, RDS triggers automatic failover in under 60 seconds with no data loss.
-- **Automated Snapshots & Point-In-Time Restore (PITR)**: Backs up write-ahead logs every 5 minutes, allowing you to restore to any second within your retention window.
-- **Parameter Groups & Encryption**: Encrypts storage at rest using AWS KMS (Key Management Service).
-
----
-
-### Static Frontend Hosting (AWS S3 & CloudFront CDN)
-Rather than serving the React frontend from Node.js (which consumes expensive CPU and RAM on backend servers), modern DevOps utilizes **Jamstack / Static Site Architecture**:
-1. Run `npm run build` inside `frontend/` to produce static assets (`dist/index.html`, JavaScript bundles, CSS).
-2. Upload these assets to a private **AWS S3 Bucket**.
-3. Point an **AWS CloudFront CDN (Content Delivery Network)** distribution to the S3 bucket using **Origin Access Control (OAC)**.
-4. **Benefits**:
-   - Ultra-low latency worldwide (cached at 400+ Edge Locations).
-   - Near-zero hosting costs compared to running continuous server instances.
-   - Virtually infinite scaling with built-in DDoS mitigation via AWS Shield.
-
----
-
-## 4. Infrastructure as Code (IaC) with Terraform
-
-### Why Terraform?
-Instead of clicking through the AWS Web Console ("ClickOps"), Terraform allows you to define your entire cloud environment as declarative code.
-- **Reproducibility**: Spin up identical `staging` and `production` environments with one command.
-- **Version Control**: Every change to an IP address, security group rule, or RDS instance size is tracked in Git commits.
-
-### How State Works
-Terraform maintains a state file (`terraform.tfstate`) that maps your code declarations to the actual IDs of provisioned AWS resources.
-
-```mermaid
-flowchart LR
-    A["main.tf / variables.tf"] -->|terraform apply| B[Terraform Core Engine]
-    B <-->|Read / Write State| C[("Remote State S3 Bucket\n+ DynamoDB State Lock")]
-    B -->|AWS API Calls| D[Real AWS Cloud Infrastructure]
+```typescript
+// backend/src/providers/cloud-provider.ts
+export interface CloudProvider {
+  getAccountSummary(): Promise<DashboardSummary>;
+  getDashboardTrends(): Promise<MetricTrendPoint[]>;
+  getOperationalEvents(limit?: number): Promise<OperationalEvent[]>;
+  listInstances(filters?: { state?: string; search?: string; az?: string }): Promise<EC2Instance[]>;
+  getInstance(instanceId: string): Promise<EC2Instance | null>;
+  getInstanceMetrics(instanceId: string, metricName: string, rangeMinutes?: number): Promise<InstanceMetrics>;
+  listAlarms(filters?: { state?: string; search?: string }): Promise<CloudWatchAlarm[]>;
+  getAlarm(alarmName: string): Promise<CloudWatchAlarm | null>;
+  listConfiguredLogGroups(): Promise<LogGroup[]>;
+  getLogEvents(logGroupName: string, startTime?: number, endTime?: number, limit?: number): Promise<LogEvent[]>;
+}
 ```
 
-- **Remote State in S3**: Stores the state file safely in an encrypted S3 bucket instead of on your local laptop.
-- **State Locking via DynamoDB**: Prevents two team members or CI/CD pipelines from executing `terraform apply` at the same time, preventing state corruption.
+### Why this design matters:
+1. **Zero Cloud Cost for Local Development**: Developers can clone the repository and run all tests or the UI without an AWS account or credit card.
+2. **Stable Automated Testing**: Unit and integration tests run deterministically against `DemoCloudProvider` without intermittent network failures or API throttling.
+3. **Clean Decoupling**: Express route controllers depend strictly on domain interfaces (`CloudProvider`), not on concrete AWS SDK classes.
 
-### Terraform Module Architecture for this Project
-When organizing Terraform for a real-world enterprise deployment of this application:
+---
 
+## 4. Backend Architecture (Node.js, Express, TypeScript, Prisma)
+
+### Domain Modular Structure
 ```text
-terraform/
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── terraform.tfvars
-│   └── prod/
-│       ├── main.tf
-│       └── terraform.tfvars
-└── modules/
-    ├── vpc/             # VPC, Subnets, IGW, NAT, Route Tables
-    ├── security_groups/ # ALB, Backend, Database SG rules
-    ├── rds/             # PostgreSQL Multi-AZ instance, Subnet Group
-    ├── compute/         # ECS Fargate Service / EC2 Auto Scaling
-    ├── alb/             # Load Balancer, Listeners, Target Groups
-    └── frontend_s3/     # S3 Static Hosting, CloudFront, OAC
+backend/src/
+├── app.ts                 # Express initialization, security middleware & route mounting
+├── server.ts              # Entrypoint listening on PORT
+├── config/env.ts          # Zod-validated environment configuration
+├── db/prisma.ts           # Prisma Client singleton
+├── middleware/
+│   ├── auth.ts            # JWT authentication middleware
+│   └── error.ts           # Centralized structured error handler
+├── modules/
+│   ├── auth/              # Login, token issuance, session info
+│   ├── dashboard/         # Aggregated KPIs, trend series, operational events
+│   ├── ec2/               # Fleet listing, filtering, instance metrics
+│   ├── cloudwatch/        # Alarm listing, details, filter states
+│   ├── logs/              # Log groups and bounded event streams
+│   └── settings/          # User preferences and refresh frequencies
+├── providers/             # CloudProvider interface, Demo & AWS drivers
+└── utils/logger.ts        # Pino structured logger
+```
+
+### Authentication & JWT Security
+- **Password Storage**: Passwords are never stored in plaintext. They are salted and hashed using `bcryptjs` with 10 salt rounds.
+- **JWT Verification**: Short-lived JSON Web Tokens are signed using `HS256` and verified on every protected route.
+- **Brute-Force Protection**: `express-rate-limit` throttles repeated attempts to `/api/v1/auth/login` (max 20 requests per 15 minutes per IP).
+- **Safe Fallback**: In offline demo mode where PostgreSQL might not be initialized, the backend securely accepts built-in demo credentials (`admin@cloudops.internal` / `Password123!`).
+
+### Database Layer: Prisma ORM & PostgreSQL
+Prisma schema defines three relational models:
+- **`User`**: Account identity with unique email and password hash.
+- **`UserPreference`**: Stores default AWS region and dashboard refresh intervals per user.
+- **`AuditEvent`**: Tracks operational events (logins, seed events, state changes) with sanitized JSON metadata.
+
+---
+
+## 5. Frontend Architecture (React 18, TypeScript, Tailwind, Recharts)
+
+### State Management with TanStack Query
+- All server state is managed through TanStack Query (`@tanstack/react-query`).
+- Configured with automatic background polling based on the user's selected interval (default 30–60s).
+- Query keys are scoped (`['ec2-instances', stateFilter, search]`), ensuring fast client-side caching and instant re-renders when switching filters.
+
+### Telemetry Visualizations with Recharts
+- Area charts display 1-hour CPU utilization and Network In/Out bandwidth.
+- Formatted tooltips render accurate units (`%`, `MB/s`, `Bytes/s`) and timestamps without interpolation.
+
+---
+
+## 6. AWS Services & Security Deep Dive
+
+### Amazon EC2 Fleet Telemetry
+- Uses `DescribeInstancesCommand` and `DescribeInstanceStatusCommand`.
+- Normalizes instance states: `running`, `stopped`, `pending`, `stopping`, `terminated`.
+- Extracts system reachability (`ok`, `impaired`, `not-applicable`).
+
+### CloudWatch Metrics & Alarms
+- Uses `GetMetricDataCommand` with 300-second periods.
+- Queries standard EC2 metrics: `CPUUtilization`, `NetworkIn`, `NetworkOut`, `StatusCheckFailed`.
+- Parses alarm states: `OK`, `ALARM`, `INSUFFICIENT_DATA`.
+
+### Least-Privilege Read-Only IAM Policy
+The application enforces least-privilege access. No write permissions (`ec2:Start*`, `ec2:Terminate*`) are granted:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EC2Read",
+      "Effect": "Allow",
+      "Action": ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus", "ec2:DescribeTags"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchRead",
+      "Effect": "Allow",
+      "Action": ["cloudwatch:GetMetricData", "cloudwatch:ListMetrics", "cloudwatch:DescribeAlarms"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "LogsRead",
+      "Effect": "Allow",
+      "Action": ["logs:DescribeLogGroups", "logs:FilterLogEvents"],
+      "Resource": "arn:aws:logs:*:*:log-group:/aws/ec2/*:*"
+    }
+  ]
+}
 ```
 
 ---
 
-## 5. Deep Dive into the Application Codebase
+## 7. Containerization & Nginx Reverse Proxy
 
-Let's examine how each line of code in our application works and why it was designed this way.
-
-### PostgreSQL Database Design & SQL Mechanics
-Open [`backend/src/db/schema.sql`](file:///home/bhargav/personal/dev/devops/projects/Terraform%20AWS%20Infrastructure%20Automation/backend/src/db/schema.sql):
-
-```sql
-CREATE TABLE IF NOT EXISTS services (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT NOT NULL,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('operational', 'degraded', 'offline')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS status_history (
-    id SERIAL PRIMARY KEY,
-    service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('operational', 'degraded', 'offline')),
-    changed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_status_history_service_id ON status_history(service_id);
-CREATE INDEX IF NOT EXISTS idx_status_history_changed_at ON status_history(changed_at DESC);
-```
-
-#### Key Engineering Decisions:
-1. **CHECK Constraints**: `CHECK (status IN ('operational', 'degraded', 'offline'))` enforces data integrity at the database engine level. Even if a bug slipped through the API, invalid statuses cannot be inserted.
-2. **Foreign Keys with `ON DELETE CASCADE`**: Linking `status_history.service_id` to `services.id` ensures that if a service is removed, its orphaned history records are cleaned up automatically.
-3. **Database Indexing**:
-   - `idx_status_history_service_id`: Makes retrieving history for a specific service (`WHERE service_id = $1`) lightning-fast ($O(\log N)$ instead of a full table scan $O(N)$).
-   - `idx_status_history_changed_at`: Optimizes ordering by timestamp (`ORDER BY changed_at DESC`).
-4. **Idempotent Seed Script** in [`backend/src/db/init.js`](file:///home/bhargav/personal/dev/devops/projects/Terraform%20AWS%20Infrastructure%20Automation/backend/src/db/init.js):
-   - Uses `SELECT ... WHERE name = $1` before inserting. If the service already exists, it skips insertion. This enables running CI/CD deployment hooks repeatedly without generating duplicate rows.
+### Docker Architecture
+- **Multi-Stage Backend Build**: `node:22-alpine` builder builds TypeScript with `tsc` and generates Prisma clients; the final lean runner image runs as a non-root `node` user.
+- **Multi-Stage Frontend Build**: `node:22-alpine` builder compiles the React SPA via Vite; the final runner is `nginx:alpine` serving static assets and routing `/api/` upstream.
+- **Docker Compose**: Orchestrates `postgres`, `backend`, and `frontend` with health checks and persistent volume storage.
 
 ---
 
-### Backend Architecture (Node.js & Express)
+## 8. Testing & Quality Gates
 
-The backend follows the **Controller-Service-Repository** pattern:
-
-```text
-HTTP Request
-     │
-     ▼
-[routes/services.js]        <-- Defines URL paths and verbs
-     │
-     ▼
-[controllers/serviceController.js] <-- Validates HTTP inputs, handles status codes
-     │
-     ▼
-[services/serviceService.js]       <-- Executes business logic & parameterized SQL
-     │
-     ▼
-[db/index.js]               <-- Manages pg.Pool connection to PostgreSQL
-```
-
-#### 1. Why Parameterized SQL Queries?
-Notice in [`backend/src/services/serviceService.js`](file:///home/bhargav/personal/dev/devops/projects/Terraform%20AWS%20Infrastructure%20Automation/backend/src/services/serviceService.js):
-```javascript
-const result = await db.query(
-  'SELECT id, name, description, status FROM services WHERE id = $1',
-  [id]
-);
-```
-**Never concatenate raw strings in SQL!** For example:
-`db.query('SELECT * FROM services WHERE id = ' + id)` is vulnerable to **SQL Injection Attacks** where an attacker passes `1; DROP TABLE services; --`. Parameterized queries pass parameters through a separate protocol channel to the database driver, making SQL injection impossible.
-
-#### 2. The Critical Health Check Endpoint
-In [`backend/src/controllers/serviceController.js`](file:///home/bhargav/personal/dev/devops/projects/Terraform%20AWS%20Infrastructure%20Automation/backend/src/controllers/serviceController.js):
-```javascript
-exports.getHealth = (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    service: 'cloudops-status-api',
-  });
-};
-```
-> [!IMPORTANT]
-> The `/api/health` endpoint **must not query the database**. If your database temporarily restarts during a maintenance window, an ALB polling this health check would mark the backend containers as "unhealthy" and kill them all simultaneously (a cascading failure). The health check confirms that Node.js is alive and accepting connections.
+| Test Suite | Framework | Scope |
+|---|---|---|
+| **Backend API Tests** | Vitest + Supertest | Health check, login validation, JWT verification, EC2 inventory, alarms, logs |
+| **Frontend UI Tests** | Vitest + React Testing Library | Login form rendering, credentials input, Overview KPI display |
+| **Typecheck & Builds** | TypeScript (`tsc`) + Vite | Strict TypeScript compliance, bundle minification |
+| **Container Build** | Docker Compose Build | Validates production container builds and non-root execution |
 
 ---
 
-### Frontend Architecture (React 18 & Vite)
+## 9. DevOps & Cloud Engineering Interview Questions & Answers
 
-The frontend is structured into modular, reusable components:
-- **`App.jsx`**: Top-level application wrapper.
-- **`Dashboard.jsx`**: State owner. Manages:
-  - `services` (list of services fetched from the backend API)
-  - `loading` and `error` states
-  - `selectedServiceId` (controls modal display)
-  - `fetchServicesData(isManualRefresh)` (refresh button handler)
-- **`SummaryCards.jsx`**: Pure presentation component computing metrics on the fly (`operational`, `degraded`, `offline` counts).
-- **`ServiceCard.jsx`**: Accessible card representation with hover states and keyboard navigation support (`Enter` / `Space` triggers details).
-- **`ServiceDetailModal.jsx`**: Displays recent history records and provides the form to submit status updates via `PATCH /api/services/:id/status`.
-- **`api.js`**: Centralized HTTP client using native `fetch` with error response extraction.
+### Q1: Why do we use a backend provider abstraction instead of calling AWS directly from the React frontend?
+**Answer:** Calling AWS directly from the browser would require exposing AWS IAM credentials or temporary STS credentials to client-side code, which is a major security risk. Furthermore, client-side calls would hit CORS limitations, rate limits, and expose raw cloud infrastructure topology. The backend acts as a secure, authenticated gateway that normalizes responses, enforces rate limits, sanitizes errors, and caches requests.
 
----
+### Q2: How does the application handle offline local development without AWS credentials?
+**Answer:** Through the `CloudProvider` interface and `DemoCloudProvider`. When `CLOUD_PROVIDER=demo` (the default), the backend serves deterministic fixtures representing realistic AWS resources (8 instances across multiple states and zones, 5 alarms, log streams, and CPU trend data) without making external network calls.
 
-### Testing Strategy
+### Q3: What is the difference between CloudWatch Metric `Period` and `EvaluationPeriods` in alarms?
+**Answer:** `Period` is the time interval (in seconds) over which metric datapoints are aggregated (e.g., 300 seconds for 5 minutes). `EvaluationPeriods` is the number of consecutive periods that must breach the configured threshold before the alarm transitions into the `ALARM` state.
 
-Testing is what separates junior code from professional DevOps engineering:
+### Q4: How does Nginx function in the containerized deployment?
+**Answer:** Nginx acts as both a high-speed static file server for the compiled React SPA and a reverse proxy for API traffic. Requests starting with `/api/` are forwarded to the backend container (`http://backend:4000`), while all other routes fall back to `/index.html` to support client-side routing.
 
-1. **Backend Unit & Integration Testing (`backend/tests/services.test.js`)**:
-   - Uses **Jest** and **Supertest** to simulate real HTTP requests without starting a physical TCP socket.
-   - Mocks the `db` layer so test suites run in milliseconds and require no active database.
-   - Tests happy paths (200 OK), validation errors (400 Bad Request), missing resources (404 Not Found), and database crashes (500 Internal Server Error).
-
-2. **Frontend Component & Integration Testing (`frontend/src/tests/Dashboard.test.jsx`)**:
-   - Uses **Vitest** and **React Testing Library (RTL)**.
-   - Adheres to the testing philosophy: *"Test how users interact with your software, not implementation details."*
-   - Simulates user clicks on cards, radio buttons, and submit buttons, verifying that the UI updates and API functions are called with correct arguments.
-
----
-
-## 6. Request Lifecycle: Step-by-Step Walkthrough
-
-Let's trace what happens when an engineer clicks **"Save Status Change"** to mark a service as `degraded`:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Engineer (Browser)
-    participant Modal as React (ServiceDetailModal)
-    participant Client as Frontend API (fetch)
-    participant ALB as AWS Load Balancer
-    participant Express as Node.js Controller
-    participant Service as Service Layer
-    participant PG as PostgreSQL Database
-
-    User->>Modal: Clicks "Degraded" & presses "Save Status Change"
-    Modal->>Client: updateServiceStatus(id, "degraded")
-    Client->>ALB: PATCH /api/services/1/status { status: "degraded" }
-    ALB->>Express: Forwards HTTP request over Private Subnet
-    Express->>Express: Validates input (status in ['operational', 'degraded', 'offline'])
-    Express->>Service: updateStatus(1, 'degraded')
-    Service->>PG: BEGIN / Parameterized UPDATE services SET status = $1 WHERE id = $2
-    PG-->>Service: Updated row returned
-    Service->>PG: INSERT INTO status_history (service_id, status) VALUES ($1, $2)
-    PG-->>Service: Insert confirmed
-    Service-->>Express: Return updated service object
-    Express-->>ALB: HTTP 200 OK { success: true, data: {...} }
-    ALB-->>Client: HTTP 200 OK
-    Client-->>Modal: Update feedback banner: "Status updated successfully"
-    Modal->>User: Re-renders UI with updated amber status pill & new history entry
-```
-
----
-
-## 7. Step-by-Step Hands-On Learning Path
-
-Follow these exercises to master this project yourself from scratch:
-
-### Exercise 1: Run the App Locally
-1. Start PostgreSQL locally:
-   ```bash
-   sudo systemctl start postgresql
-   ```
-2. Initialize database:
-   ```bash
-   createdb cloudops_status -U postgres
-   cd backend
-   npm run db:init
-   ```
-3. Run the backend:
-   ```bash
-   npm run dev
-   ```
-4. In another terminal, run the frontend:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-5. Open `http://localhost:5173` in your browser. Open your browser DevTools Network tab and click through services to see the HTTP requests.
-
-### Exercise 2: Explore the Database via CLI
-Connect to your database:
-```bash
-psql -U postgres -d cloudops_status
-```
-Run queries:
-```sql
-SELECT * FROM services;
-SELECT * FROM status_history ORDER BY changed_at DESC;
-```
-Now change a status in the web UI, re-run `SELECT * FROM status_history;` in `psql`, and watch the new timestamp entry appear.
-
-### Exercise 3: Run the Test Suites
-Run the backend tests:
-```bash
-cd backend && npm test
-```
-Run the frontend tests:
-```bash
-cd frontend && npm test
-```
-Try breaking a validation rule in `serviceController.js` (for example, remove `'degraded'` from `VALID_STATUSES`) and re-run `npm test` to observe how Jest detects the regression immediately.
-
----
-
-## 8. DevOps Interview Questions & Answers on this Project
-
-Use these sample questions to prepare for technical interviews:
-
-### Q1: Why did you place the backend in private subnets instead of public subnets?
-> **Answer**: Placing the backend in a private subnet enforces network defense-in-depth. Compute resources do not have public IP addresses and cannot be reached directly by automated scanners, botnets, or brute-force attacks on the open internet. All inbound traffic must pass through the Application Load Balancer, which can inspect requests, enforce SSL, and integrate with AWS WAF for DDoS and web attack mitigation.
-
-### Q2: What is the difference between a Security Group and a Network ACL?
-> **Answer**: 
-> - **Security Groups** operate at the virtual network interface (instance) level and are **stateful**. Outbound responses to permitted inbound connections are automatically allowed.
-> - **NACLs** operate at the subnet boundary and are **stateless**. Both inbound and outbound traffic must be explicitly permitted by rule number.
-
-### Q3: Why didn't you serve the frontend bundle from the Express server?
-> **Answer**: Decoupling frontend static assets from backend compute is a DevOps best practice. Serving static files via S3 and CloudFront CDN provides global edge caching, near-zero hosting costs, and infinite scalability without loading the Express Node.js event loop. The Express server remains dedicated to dynamic business logic and database queries.
-
-### Q4: How does your database initialization avoid race conditions and duplicate seed records?
-> **Answer**: The seed script checks for existing records by a unique constraint key (`name`) before executing an `INSERT`. This idempotent approach allows the migration script to run safely on every container start or deployment pipeline without throwing primary key collision errors or polluting data.
-
----
-
-*This guide provides the foundational understanding required to design, implement, and discuss modern cloud-native architectures.*
-
+### Q5: What security measures prevent credential exposure or privilege escalation?
+**Answer:**
+1. **Least-Privilege IAM**: Read-only permissions with no mutation capabilities.
+2. **Environment Isolation**: Secrets stored in `.env` (excluded by `.gitignore`).
+3. **Rate Limiting & Helmet**: Protects against brute-force attacks and cross-site scripting (XSS).
+4. **Sanitized Error Handling**: Internal stack traces and AWS SDK error payloads are stripped before returning HTTP error responses to clients.

@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cloudops
+      POSTGRES_PASSWORD: cloudops_dev_password
+      POSTGRES_DB: cloudops
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudops -d cloudops"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cloudops-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://cloudops:cloudops_dev_password@postgres:5432/cloudops
+      JWT_SECRET: dev_super_secret_jwt_key_for_cloudops_dashboard_2026!
+      AUTH_TOKEN_TTL: 24h
+      CLOUD_PROVIDER: demo
+      AWS_REGION: ap-south-1
+      FRONTEND_ORIGIN: http://localhost:80
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: cloudops-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

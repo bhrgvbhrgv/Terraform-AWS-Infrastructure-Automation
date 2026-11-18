@@ -1,252 +1,147 @@
-# CloudOps Status Dashboard
+# CloudOps Command Center
 
-A modern, responsive web application built for a DevOps portfolio demonstration focused on AWS VPC design, Terraform infrastructure automation, and multi-tier service monitoring.
+[![CloudOps CI](https://github.com/bhargav/cloudops-command-center/actions/workflows/ci.yml/badge.svg)](https://github.com/bhargav/cloudops-command-center/actions)
 
-The dashboard displays the health and availability of fictional infrastructure components (Web Frontend, REST API, Database, Background Worker), supports real-time status updates, and records historic status changes in PostgreSQL.
-
----
-
-## 🛠️ Architecture & Tech Stack
-
-- **Frontend:**
-  - React 18 with Vite (Pure JavaScript, no TypeScript)
-  - Semantic HTML5, accessible labels, responsive DevOps dark-theme UI
-  - Loading, empty, and error state handling
-  - Vitest + React Testing Library for frontend component and integration tests
-- **Backend:**
-  - Node.js & Express REST API
-  - Raw parameterized SQL queries via `pg` (no ORM)
-  - Input validation, CORS configuration, centralized error handling
-  - Jest + Supertest for API endpoint testing
-- **Database:**
-  - PostgreSQL schema with relational tables (`services`, `status_history`)
-  - Foreign keys, cascaded deletions, and indexed query optimizations
-  - Seed initialization script avoiding duplicate inserts
+A production-ready Cloud Operations and Infrastructure Dashboard engineered to provide real-time operational visibility into an AWS cloud environment. It unifies EC2 fleet inventory, CloudWatch metrics, operational alarms, and live log streams into an intuitive, high-performance console.
 
 ---
 
-## 📂 Project Structure
+## Architecture Overview
 
 ```text
-.
-├── .env.example
-├── MASTER.md
-├── README.md
-├── backend/
-│   ├── package.json
-│   ├── src/
-│   │   ├── app.js
-│   │   ├── server.js
-│   │   ├── controllers/
-│   │   │   └── serviceController.js
-│   │   ├── db/
-│   │   │   ├── index.js
-│   │   │   ├── init.js
-│   │   │   └── schema.sql
-│   │   ├── routes/
-│   │   │   └── services.js
-│   │   └── services/
-│   │       └── serviceService.js
-│   └── tests/
-│       └── services.test.js
-└── frontend/
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    └── src/
-        ├── App.jsx
-        ├── index.css
-        ├── main.jsx
-        ├── components/
-        │   ├── ServiceCard.jsx
-        │   ├── ServiceDetailModal.jsx
-        │   ├── StatusBadge.jsx
-        │   └── SummaryCards.jsx
-        ├── pages/
-        │   └── Dashboard.jsx
-        ├── services/
-        │   └── api.js
-        └── tests/
-            ├── Dashboard.test.jsx
-            └── setup.js
+                     DevOps Engineer / Browser
+                                |
+                              HTTPS
+                                |
+                        Nginx Reverse Proxy
+                         /             \
+                        /               \
+                React Frontend      /api/v1/* routes
+                 (TypeScript)             |
+                                     Express API (Node.js)
+                                          |
+                 +------------------------+----------------------+
+                 |                        |                      |
+            Auth Module           CloudOps Provider         Audit Module
+                 |                        |                      |
+            PostgreSQL               CloudProvider               |
+                 |                     Interface                 |
+          Users & Preferences       /             \              |
+                                   /               \             |
+                        Demo Provider          AWS Provider      |
+                     (Deterministic Mocks)   (AWS SDK v3 Read)   |
+                                                     |
+                                            AWS Account Services
+                                            - EC2 Inventory
+                                            - CloudWatch Metrics
+                                            - CloudWatch Alarms
+                                            - CloudWatch Logs
 ```
 
 ---
 
-## ⚙️ Environment Variables
+## Key Features
 
-Copy `.env.example` to create your local backend configuration:
-
-```bash
-cp .env.example backend/.env
-```
-
-### Environment Keys
-
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `DB_HOST` | PostgreSQL hostname | `localhost` |
-| `DB_PORT` | PostgreSQL port | `5432` |
-| `DB_USER` | PostgreSQL username | `postgres` |
-| `DB_PASSWORD` | PostgreSQL password | `postgres` |
-| `DB_NAME` | PostgreSQL database name | `cloudops_status` |
-| `PORT` | Backend server port | `5000` |
-| `NODE_ENV` | Environment mode | `development` |
-| `CORS_ORIGIN` | Allowed CORS origin | `http://localhost:5173` |
-
-For the frontend, you can optionally configure `frontend/.env`:
-```bash
-VITE_API_URL=http://localhost:5000/api
-```
-*(By default, Vite proxies `/api` requests to `http://localhost:5000`)*.
+- **Unified Operations Console**: Real-time fleet health status (`HEALTHY`, `DEGRADED`, `CRITICAL`), reachability checks, and state distribution.
+- **Pluggable Cloud Provider Layer**: Zero AWS credential dependencies for local demo and automated testing, with seamless switching to live AWS SDK v3.
+- **Searchable EC2 Fleet Inventory**: Filter instances by state (`running`, `stopped`, `pending`), search by tags or IP addresses, and inspect CPU and network telemetry drawers.
+- **CloudWatch Alarms & Monitoring**: Real-time status reporting (`OK`, `ALARM`, `INSUFFICIENT_DATA`), evaluation periods, and metric thresholds.
+- **Bounded Log Streaming**: Stream and filter CloudWatch logs from pre-configured log groups with client-side keyword filtering.
+- **Security & Least-Privilege Architecture**: Read-only server-side AWS access, bcrypt password hashing, JWT authentication, rate limiting, and structured Pino logging.
 
 ---
 
-## 🚀 Local Setup & Installation
+## Technology Stack
 
-### Prerequisites
-- **Node.js**: v18+ (tested on v24)
-- **PostgreSQL**: v14+ (tested on v18)
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | React 18, TypeScript, Vite | Single Page Application (SPA) |
+| **Styling** | Tailwind CSS | Dark-themed, high-contrast operations UI |
+| **Icons & Charts** | Lucide React, Recharts | Telemetry charts & operational icons |
+| **State Management** | TanStack Query (React Query) | Server caching, polling & refetching |
+| **Backend API** | Node.js, Express, TypeScript | Modular REST API under `/api/v1` |
+| **Validation** | Zod | Runtime validation for env and requests |
+| **Database & ORM** | PostgreSQL, Prisma ORM | Users, preferences & audit logs |
+| **Authentication** | JWT, bcryptjs | Stateless session security & password hashing |
+| **Cloud Integration** | AWS SDK for JavaScript v3 | Server-side read-only EC2 & CloudWatch APIs |
+| **Containers & Proxy** | Docker, Docker Compose, Nginx | Multi-stage builds & reverse proxy |
+| **Testing** | Vitest, Supertest, RTL | Unit, integration & UI test suites |
+| **CI/CD** | GitHub Actions | Automated checks, linting & builds |
 
-### 1. Database Setup
-Create the PostgreSQL database:
+---
+
+## Quickstart (Local Docker Compose)
+
+The recommended way to run the full application locally:
+
 ```bash
-createdb cloudops_status -U postgres
-# Or via psql:
-# CREATE DATABASE cloudops_status;
+# 1. Setup environment file
+cp .env.example .env
+
+# 2. Build and start all services
+docker compose up --build
 ```
 
-Run schema initialization and seed default fictional services:
+### Access URLs:
+- **Frontend Console**: [http://localhost:3000](http://localhost:3000) or [http://localhost:80](http://localhost:80)
+- **Backend API Health Check**: [http://localhost:4000/api/v1/health](http://localhost:4000/api/v1/health)
+
+### Default Demo Credentials:
+- **Email**: `admin@cloudops.internal`
+- **Password**: `Password123!`
+
+---
+
+## Local Development (Without Docker)
+
+You can also run backend and frontend independently on your host machine:
+
+### 1. Backend Service
 ```bash
 cd backend
-npm run db:init
-```
-
-### 2. Backend Setup & Run
-From the `backend/` directory:
-```bash
-# Install dependencies
 npm install
-
-# Start in development mode (with hot-reload)
-npm run dev
-
-# Or start in standard mode
-npm start
-```
-The backend will be available at `http://localhost:5000`.
-- Health check: `http://localhost:5000/api/health`
-- Services list: `http://localhost:5000/api/services`
-
-### 3. Frontend Setup & Run
-Open a new terminal window and navigate to `frontend/`:
-```bash
-# Install dependencies
-npm install
-
-# Start development server
 npm run dev
 ```
-The frontend dashboard will be available at `http://localhost:5173`.
+API runs on `http://localhost:4000`.
+
+### 2. Frontend Application
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Development server runs on `http://localhost:5173`.
 
 ---
 
-## 🧪 Running Tests
+## Testing & Quality Gates
 
-### Backend Tests
-Uses **Jest** and **Supertest** with mocked database queries to verify all API routes, edge cases, input validation, and HTTP status codes:
+Run all backend and frontend unit and integration tests:
+
 ```bash
-cd backend
-npm test
+# Run backend tests
+cd backend && npm test
+
+# Run frontend tests
+cd frontend && npm test
 ```
 
-### Frontend Tests
-Uses **Vitest** and **React Testing Library** to verify dashboard rendering, summary cards, loading states, error banners, and modal status updates:
-```bash
-cd frontend
-npm test
-```
+Build production artifacts:
 
-### Frontend Production Build
-To verify production bundle compilation:
 ```bash
-cd frontend
-npm run build
+# Build backend TypeScript
+cd backend && npm run build
+
+# Build frontend bundle
+cd frontend && npm run build
 ```
 
 ---
 
-## 🌐 API Specification
+## Documentation & Learning Resources
 
-### `GET /api/health`
-Application health check (does not require database access).
-- **Response**: `200 OK`
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-10-28T01:30:00.000Z",
-  "uptime": 12.34,
-  "service": "cloudops-status-api"
-}
-```
-
-### `GET /api/services`
-Retrieves all monitored services and their current status.
-- **Response**: `200 OK`
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "Web Frontend",
-      "description": "User-facing Single Page Application...",
-      "status": "operational",
-      "created_at": "...",
-      "updated_at": "..."
-    }
-  ]
-}
-```
-
-### `GET /api/services/:id`
-Retrieves a specific service along with its recent 50 status history transitions.
-- **Response**: `200 OK`
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "Web Frontend",
-    "description": "...",
-    "status": "operational",
-    "history": [
-      {
-        "id": 1,
-        "service_id": 1,
-        "status": "operational",
-        "changed_at": "..."
-      }
-    ]
-  }
-}
-```
-
-### `PATCH /api/services/:id/status`
-Updates service status and appends a transition record to `status_history`.
-- **Request Body**:
-```json
-{
-  "status": "degraded"
-}
-```
-- **Response**: `200 OK`
-```json
-{
-  "success": true,
-  "message": "Status updated successfully to degraded.",
-  "data": { ... }
-}
-```
-- **Validation**: Accepts only `'operational'`, `'degraded'`, or `'offline'`.
-
+- **[STUDY_GUIDE.md](file:///STUDY_GUIDE.md)**: Deep dive into the system architecture, request lifecycles, AWS services, and DevOps interview Q&As.
+- **[docs/architecture.md](file:///docs/architecture.md)**: System design and provider pattern breakdown.
+- **[docs/aws-iam-policy.md](file:///docs/aws-iam-policy.md)**: Least-privilege IAM policy reference for live AWS integration.
+- **[docs/api.md](file:///docs/api.md)**: Complete REST API endpoint reference.
+- **[docs/deployment.md](file:///docs/deployment.md)**: Production deployment guide with Docker and Nginx.
